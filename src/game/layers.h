@@ -19,13 +19,30 @@ class CLayers
 public:
 	CLayers();
 	void Init(class IKernel *pKernel, class IMap *pMap=0);
+	void InitBackground(class IMap *pMap);
 	int NumGroups() const { return m_GroupsNum; };
-	int NumLayers() const { return m_LayersNum; };
 	class IMap *Map() const { return m_pMap; };
 	CMapItemGroup *GameGroup() const { return m_pGameGroup; };
 	CMapItemLayerTilemap *GameLayer() const { return m_pGameLayer; };
 	CMapItemGroup *GetGroup(int Index) const;
 	CMapItemLayer *GetLayer(int Index) const;
+
+	// DDRace
+
+	void Dest();
+	CMapItemLayerTilemap *TeleLayer() const { return m_pTeleLayer; };
+	CMapItemLayerTilemap *SpeedupLayer() const { return m_pSpeedupLayer; };
+	CMapItemLayerTilemap *FrontLayer() const { return m_pFrontLayer; };
+	CMapItemLayerTilemap *SwitchLayer() const { return m_pSwitchLayer; };
+	CMapItemLayerTilemap *TuneLayer() const { return m_pTuneLayer; };
+
+private:
+
+	CMapItemLayerTilemap *m_pTeleLayer;
+	CMapItemLayerTilemap *m_pSpeedupLayer;
+	CMapItemLayerTilemap *m_pFrontLayer;
+	CMapItemLayerTilemap *m_pSwitchLayer;
+	CMapItemLayerTilemap *m_pTuneLayer;
 };
 
 #endif

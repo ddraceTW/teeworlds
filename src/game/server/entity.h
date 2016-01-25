@@ -139,6 +139,11 @@ public:
 	int NetworkClipped(int SnappingClient, vec2 CheckPos);
 
 	bool GameLayerClipped(vec2 CheckPos);
+	
+	// DDRace
+
+	int m_Number;
+	int m_Layer;
 };
 
 #endif
