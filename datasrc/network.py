@@ -253,6 +253,10 @@ Messages = [
 		NetIntRange("m_Weapon", -3, 'NUM_WEAPONS-1'),
 		NetIntAny("m_ModeSpecial"),
 	]),
+	
+	NetMessage("Sv_SoundGlobal", [
+		NetIntRange("m_SoundID", 0, 'NUM_SOUNDS-1'),
+	]),
 
 	NetMessage("Sv_TuneParams", []),
 	NetMessage("Sv_ExtraProjectile", []),

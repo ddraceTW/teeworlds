@@ -55,7 +55,11 @@ public:
 
 	void SetEmote(int Emote, int Tick);
 
+	void Rescue();
+
+	int NeededFaketuning() { return m_NeededFaketuning; }
 	bool IsAlive() const { return m_Alive; }
+	bool IsPaused() const { return m_Paused; }
 	class CPlayer *GetPlayer() { return m_pPlayer; }
 
 private:
@@ -63,22 +67,24 @@ private:
 	class CPlayer *m_pPlayer;
 
 	bool m_Alive;
+	bool m_Paused;
+	int m_NeededFaketuning;
 
 	// weapon info
 	CEntity *m_apHitObjects[10];
 	int m_NumObjectsHit;
 
-	struct WeaponStat
+public: struct WeaponStat
 	{
 		int m_AmmoRegenStart;
 		int m_Ammo;
 		bool m_Got;
 
-	} m_aWeapons[NUM_WEAPONS];
+	} m_aWeapons[NUM_WEAPONS]; private: // XXX: this is not good
 
 	int m_ActiveWeapon;
-	int m_LastWeapon;
-	int m_QueuedWeapon;
+public: int m_LastWeapon; private: // XXX: this is not good
+public: int m_QueuedWeapon; private: // XXX: this is not good
 
 	int m_ReloadTimer;
 	int m_AttackTick;
@@ -118,7 +124,7 @@ private:
 	} m_Ninja;
 
 	// the player core for the physics
-	CCharacterCore m_Core;
+public: CCharacterCore m_Core; private: // XXX: this is not good
 
 	// info for dead reckoning
 	int m_ReckoningTick; // tick that we are performing dead reckoning From

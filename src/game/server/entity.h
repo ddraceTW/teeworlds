@@ -26,7 +26,7 @@ private:
 	CEntity *m_pPrevTypeEntity;
 	CEntity *m_pNextTypeEntity;
 
-	int m_ID;
+public: int m_ID; private: // XXX: maybe not good
 	int m_ObjType;
 
 	/*

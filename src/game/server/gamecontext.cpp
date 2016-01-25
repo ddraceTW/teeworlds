@@ -96,6 +96,7 @@ class CCharacter *CGameContext::GetPlayerChar(int ClientID)
 	return m_apPlayers[ClientID]->GetCharacter();
 }
 
+/*
 void CGameContext::CreateDamageInd(vec2 Pos, float Angle, int Amount)
 {
 	float a = 3*pi/2 + Angle;
@@ -190,6 +191,149 @@ void CGameContext::CreateSound(vec2 Pos, int Sound, int Mask)
 		pEvent->m_X = (int)Pos.x;
 		pEvent->m_Y = (int)Pos.y;
 		pEvent->m_SoundID = Sound;
+	}
+}*/
+void CGameContext::CreateDamageInd(vec2 Pos, float Angle, int Amount, int64_t Mask)
+{
+	float a = 3 * 3.14159f / 2 + Angle;
+	//float a = get_angle(dir);
+	float s = a-pi/3;
+	float e = a+pi/3;
+	for(int i = 0; i < Amount; i++)
+	{
+		float f = mix(s, e, float(i+1)/float(Amount+2));
+		CNetEvent_DamageInd *pEvent = (CNetEvent_DamageInd *)m_Events.Create(NETEVENTTYPE_DAMAGEIND, sizeof(CNetEvent_DamageInd), Mask);
+		if(pEvent)
+		{
+			pEvent->m_X = (int)Pos.x;
+			pEvent->m_Y = (int)Pos.y;
+			pEvent->m_Angle = (int)(f*256.0f);
+		}
+	}
+}
+
+void CGameContext::CreateHammerHit(vec2 Pos, int64_t Mask)
+{
+	// create the event
+	CNetEvent_HammerHit *pEvent = (CNetEvent_HammerHit *)m_Events.Create(NETEVENTTYPE_HAMMERHIT, sizeof(CNetEvent_HammerHit), Mask);
+	if(pEvent)
+	{
+		pEvent->m_X = (int)Pos.x;
+		pEvent->m_Y = (int)Pos.y;
+	}
+}
+
+
+void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int ActivatedTeam, int64_t Mask)
+{
+	// create the event
+	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion), Mask);
+	if(pEvent)
+	{
+		pEvent->m_X = (int)Pos.x;
+		pEvent->m_Y = (int)Pos.y;
+	}
+/*
+	if (!NoDamage)
+	{
+	*/
+		// deal damage
+		CCharacter *apEnts[MAX_CLIENTS];
+		float Radius = 135.0f;
+		float InnerRadius = 48.0f;
+		int Num = m_World.FindEntities(Pos, Radius, (CEntity**)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+		for(int i = 0; i < Num; i++)
+		{
+			vec2 Diff = apEnts[i]->m_Pos - Pos;
+			vec2 ForceDir(0,1);
+			float l = length(Diff);
+			if(l)
+				ForceDir = normalize(Diff);
+			l = 1-clamp((l-InnerRadius)/(Radius-InnerRadius), 0.0f, 1.0f);
+			float Strength;
+			if (Owner == -1 || !m_apPlayers[Owner] || !m_apPlayers[Owner]->m_TuneZone)
+				Strength = Tuning()->m_ExplosionStrength;
+			else
+				Strength = TuningList()[m_apPlayers[Owner]->m_TuneZone].m_ExplosionStrength;
+
+			float Dmg = Strength * l;
+			if((int)Dmg)
+				if((GetPlayerChar(Owner) ? !(GetPlayerChar(Owner)->m_Hit&CCharacter::DISABLE_HIT_GRENADE) : g_Config.m_SvHit || NoDamage) || Owner == apEnts[i]->GetPlayer()->GetCID())
+				{
+					if(Owner != -1 && apEnts[i]->IsAlive() && !apEnts[i]->CanCollide(Owner)) continue;
+					if(Owner == -1 && ActivatedTeam != -1 && apEnts[i]->IsAlive() && apEnts[i]->Team() != ActivatedTeam) continue;
+					apEnts[i]->TakeDamage(ForceDir*Dmg*2, (int)Dmg, Owner, Weapon);
+					if(GetPlayerChar(Owner) ? GetPlayerChar(Owner)->m_Hit&CCharacter::DISABLE_HIT_GRENADE : !g_Config.m_SvHit || NoDamage) break;
+				}
+		}
+	//}
+}
+
+/*
+void create_smoke(vec2 Pos)
+{
+	// create the event
+	EV_EXPLOSION *pEvent = (EV_EXPLOSION *)events.create(EVENT_SMOKE, sizeof(EV_EXPLOSION));
+	if(pEvent)
+	{
+		pEvent->x = (int)Pos.x;
+		pEvent->y = (int)Pos.y;
+	}
+}*/
+
+void CGameContext::CreatePlayerSpawn(vec2 Pos, int64_t Mask)
+{
+	// create the event
+	CNetEvent_Spawn *ev = (CNetEvent_Spawn *)m_Events.Create(NETEVENTTYPE_SPAWN, sizeof(CNetEvent_Spawn), Mask);
+	if(ev)
+	{
+		ev->m_X = (int)Pos.x;
+		ev->m_Y = (int)Pos.y;
+	}
+}
+
+void CGameContext::CreateDeath(vec2 Pos, int ClientID, int64_t Mask)
+{
+	// create the event
+	CNetEvent_Death *pEvent = (CNetEvent_Death *)m_Events.Create(NETEVENTTYPE_DEATH, sizeof(CNetEvent_Death), Mask);
+	if(pEvent)
+	{
+		pEvent->m_X = (int)Pos.x;
+		pEvent->m_Y = (int)Pos.y;
+		pEvent->m_ClientID = ClientID;
+	}
+}
+
+void CGameContext::CreateSound(vec2 Pos, int Sound, int64_t Mask)
+{
+	if (Sound < 0)
+		return;
+
+	// create a sound
+	CNetEvent_SoundWorld *pEvent = (CNetEvent_SoundWorld *)m_Events.Create(NETEVENTTYPE_SOUNDWORLD, sizeof(CNetEvent_SoundWorld), Mask);
+	if(pEvent)
+	{
+		pEvent->m_X = (int)Pos.x;
+		pEvent->m_Y = (int)Pos.y;
+		pEvent->m_SoundID = Sound;
+	}
+}
+
+void CGameContext::CreateSoundGlobal(int Sound, int Target)
+{
+	if (Sound < 0)
+		return;
+
+	CNetMsg_Sv_SoundGlobal Msg;
+	Msg.m_SoundID = Sound;
+	if(Target == -2)
+		Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, -1);
+	else
+	{
+		int Flag = MSGFLAG_VITAL;
+		if(Target != -1)
+			Flag |= MSGFLAG_NORECORD;
+		Server()->SendPackMsg(&Msg, Flag, Target);
 	}
 }
 
@@ -1527,3 +1671,367 @@ const char *CGameContext::Version() const { return GAME_VERSION; }
 const char *CGameContext::NetVersion() const { return GAME_NETVERSION; }
 
 IGameServer *CreateGameServer() { return new CGameContext; }
+
+void CGameContext::SendChatResponseAll(const char *pLine, void *pUser)
+{
+	CGameContext *pSelf = (CGameContext *)pUser;
+
+	static volatile int ReentryGuard = 0;
+	const char *pLineOrig = pLine;
+
+	if(ReentryGuard)
+		return;
+	ReentryGuard++;
+
+	if(*pLine == '[')
+	do
+		pLine++;
+	while((pLine - 2 < pLineOrig || *(pLine - 2) != ':') && *pLine != 0);//remove the category (e.g. [Console]: No Such Command)
+
+	pSelf->SendChat(-1, CHAT_ALL, pLine);
+
+	ReentryGuard--;
+}
+
+void CGameContext::SendChatResponse(const char *pLine, void *pUser, bool Highlighted)
+{
+	CGameContext *pSelf = (CGameContext *)pUser;
+	int ClientID = pSelf->m_ChatResponseTargetID;
+
+	if(ClientID < 0 || ClientID >= MAX_CLIENTS)
+		return;
+
+	const char *pLineOrig = pLine;
+
+	static volatile int ReentryGuard = 0;
+
+	if(ReentryGuard)
+		return;
+	ReentryGuard++;
+
+	if(*pLine == '[')
+	do
+		pLine++;
+	while((pLine - 2 < pLineOrig || *(pLine - 2) != ':') && *pLine != 0); // remove the category (e.g. [Console]: No Such Command)
+
+	pSelf->SendChatTarget(ClientID, pLine);
+
+	ReentryGuard--;
+}
+
+bool CGameContext::PlayerCollision()
+{
+	float Temp;
+	m_Tuning.Get("player_collision", &Temp);
+	return Temp != 0.0;
+}
+
+bool CGameContext::PlayerHooking()
+{
+	float Temp;
+	m_Tuning.Get("player_hooking", &Temp);
+	return Temp != 0.0;
+}
+
+float CGameContext::PlayerJetpack()
+{
+	float Temp;
+	m_Tuning.Get("player_jetpack", &Temp);
+	return Temp;
+}
+
+void CGameContext::OnSetAuthed(int ClientID, int Level)
+{
+	CServer* pServ = (CServer*)Server();
+	if(m_apPlayers[ClientID])
+	{
+		m_apPlayers[ClientID]->m_Authed = Level;
+		char aBuf[512], aIP[NETADDR_MAXSTRSIZE];
+		pServ->GetClientAddr(ClientID, aIP, sizeof(aIP));
+		str_format(aBuf, sizeof(aBuf), "ban %s %d Banned by vote", aIP, g_Config.m_SvVoteKickBantime);
+		if(!str_comp_nocase(m_aVoteCommand, aBuf) && Level > 0)
+		{
+			m_VoteEnforce = CGameContext::VOTE_ENFORCE_NO_ADMIN;
+			Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "CGameContext", "Aborted vote by admin login.");
+		}
+	}
+}
+
+void CGameContext::SendRecord(int ClientID)
+{
+	CNetMsg_Sv_Record RecordsMsg;
+	RecordsMsg.m_PlayerTimeBest = Score()->PlayerData(ClientID)->m_BestTime * 100.0f;
+	RecordsMsg.m_ServerTimeBest = m_pController->m_CurrentRecord * 100.0f; //TODO: finish this
+	Server()->SendPackMsg(&RecordsMsg, MSGFLAG_VITAL, ClientID);
+}
+
+int CGameContext::ProcessSpamProtection(int ClientID)
+{
+	if(!m_apPlayers[ClientID])
+		return 0;
+	if(g_Config.m_SvSpamprotection && m_apPlayers[ClientID]->m_LastChat
+		&& m_apPlayers[ClientID]->m_LastChat + Server()->TickSpeed() * g_Config.m_SvChatDelay > Server()->Tick())
+		return 1;
+	else
+		m_apPlayers[ClientID]->m_LastChat = Server()->Tick();
+	NETADDR Addr;
+	Server()->GetClientAddr(ClientID, &Addr);
+	int Muted = 0;
+
+	for(int i = 0; i < m_NumMutes && !Muted; i++)
+	{
+		if(!net_addr_comp(&Addr, &m_aMutes[i].m_Addr))
+			Muted = (m_aMutes[i].m_Expire - Server()->Tick()) / Server()->TickSpeed();
+	}
+
+	if (Muted > 0)
+	{
+		char aBuf[128];
+		str_format(aBuf, sizeof aBuf, "You are not permitted to talk for the next %d seconds.", Muted);
+		SendChatTarget(ClientID, aBuf);
+		return 1;
+	}
+
+	if ((m_apPlayers[ClientID]->m_ChatScore += g_Config.m_SvChatPenalty) > g_Config.m_SvChatThreshold)
+	{
+		Mute(0, &Addr, g_Config.m_SvSpamMuteDuration, Server()->ClientName(ClientID));
+		m_apPlayers[ClientID]->m_ChatScore = 0;
+		return 1;
+	}
+
+	return 0;
+}
+
+int CGameContext::GetDDRaceTeam(int ClientID)
+{
+	CGameControllerDDRace* pController = (CGameControllerDDRace*)m_pController;
+	return pController->m_Teams.m_Core.Team(ClientID);
+}
+
+void CGameContext::ResetTuning()
+{
+	CTuningParams TuningParams;
+	m_Tuning = TuningParams;
+	Tuning()->Set("gun_speed", 1400);
+	Tuning()->Set("gun_curvature", 0);
+	Tuning()->Set("shotgun_speed", 500);
+	Tuning()->Set("shotgun_speeddiff", 0);
+	Tuning()->Set("shotgun_curvature", 0);
+	SendTuningParams(-1);
+}
+
+bool CheckClientID2(int ClientID)
+{
+	dbg_assert(ClientID >= 0 || ClientID < MAX_CLIENTS,
+			"The Client ID is wrong");
+	if (ClientID < 0 || ClientID >= MAX_CLIENTS)
+		return false;
+	return true;
+}
+
+void CGameContext::Whisper(int ClientID, char *pStr)
+{
+	char *pName;
+	char *pMessage;
+	int Error = 0;
+
+	if(ProcessSpamProtection(ClientID))
+		return;
+
+	pStr = str_skip_whitespaces(pStr);
+
+	int Victim;
+
+	// add token
+	if(*pStr == '"')
+	{
+		pStr++;
+
+		pName = pStr; // we might have to process escape data
+		while(1)
+		{
+			if(pStr[0] == '"')
+				break;
+			else if(pStr[0] == '\\')
+			{
+				if(pStr[1] == '\\')
+					pStr++; // skip due to escape
+				else if(pStr[1] == '"')
+					pStr++; // skip due to escape
+			}
+			else if(pStr[0] == 0)
+				Error = 1;
+
+			pStr++;
+		}
+
+		// write null termination
+		*pStr = 0;
+		pStr++;
+
+		for(Victim = 0; Victim < MAX_CLIENTS; Victim++)
+			if (str_comp(pName, Server()->ClientName(Victim)) == 0)
+				break;
+
+	}
+	else
+	{
+		pName = pStr;
+		while(1)
+		{
+			if(pStr[0] == 0)
+			{
+				Error = 1;
+				break;
+			}
+			if(pStr[0] == ' ')
+			{
+				pStr[0] = 0;
+				for(Victim = 0; Victim < MAX_CLIENTS; Victim++)
+					if (str_comp(pName, Server()->ClientName(Victim)) == 0)
+						break;
+
+				pStr[0] = ' ';
+
+				if (Victim < MAX_CLIENTS)
+					break;
+			}
+			pStr++;
+		}
+	}
+
+	if(pStr[0] != ' ')
+	{
+		Error = 1;
+	}
+
+	*pStr = 0;
+	pStr++;
+
+	pMessage = pStr;
+
+	char aBuf[256];
+
+	if (Error)
+	{
+		str_format(aBuf, sizeof(aBuf), "Invalid whisper");
+		SendChatTarget(ClientID, aBuf);
+		return;
+	}
+
+	if (Victim >= MAX_CLIENTS || !CheckClientID2(Victim))
+	{
+		str_format(aBuf, sizeof(aBuf), "No player with name \"%s\" found", pName);
+		SendChatTarget(ClientID, aBuf);
+		return;
+	}
+
+	WhisperID(ClientID, Victim, pMessage);
+}
+
+void CGameContext::WhisperID(int ClientID, int VictimID, char *pMessage)
+{
+	if (!CheckClientID2(ClientID))
+		return;
+
+	if (!CheckClientID2(VictimID))
+		return;
+
+	if (m_apPlayers[ClientID])
+		m_apPlayers[ClientID]->m_LastWhisperTo = VictimID;
+
+	char aBuf[256];
+
+	if (m_apPlayers[ClientID] && m_apPlayers[ClientID]->m_ClientVersion >= VERSION_DDNET_WHISPER)
+	{
+		CNetMsg_Sv_Chat Msg;
+		Msg.m_Team = CHAT_WHISPER_SEND;
+		Msg.m_ClientID = VictimID;
+		Msg.m_pMessage = pMessage;
+		if(g_Config.m_SvDemoChat)
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID);
+		else
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, ClientID);
+	}
+	else
+	{
+		str_format(aBuf, sizeof(aBuf), "[→ %s] %s", Server()->ClientName(VictimID), pMessage);
+		SendChatTarget(ClientID, aBuf);
+	}
+
+	if (m_apPlayers[VictimID] && m_apPlayers[VictimID]->m_ClientVersion >= VERSION_DDNET_WHISPER)
+	{
+		CNetMsg_Sv_Chat Msg2;
+		Msg2.m_Team = CHAT_WHISPER_RECV;
+		Msg2.m_ClientID = ClientID;
+		Msg2.m_pMessage = pMessage;
+		if(g_Config.m_SvDemoChat)
+			Server()->SendPackMsg(&Msg2, MSGFLAG_VITAL, VictimID);
+		else
+			Server()->SendPackMsg(&Msg2, MSGFLAG_VITAL|MSGFLAG_NORECORD, VictimID);
+	}
+	else
+	{
+		str_format(aBuf, sizeof(aBuf), "[← %s] %s", Server()->ClientName(ClientID), pMessage);
+		SendChatTarget(VictimID, aBuf);
+	}
+}
+
+void CGameContext::Converse(int ClientID, char *pStr)
+{
+	CPlayer *pPlayer = m_apPlayers[ClientID];
+	if (!pPlayer)
+		return;
+
+	if(ProcessSpamProtection(ClientID))
+		return;
+
+	if (pPlayer->m_LastWhisperTo < 0)
+		SendChatTarget(ClientID, "You do not have an ongoing conversation. Whisper to someone to start one");
+	else
+	{
+		WhisperID(ClientID, pPlayer->m_LastWhisperTo, pStr);
+	}
+}
+
+void CGameContext::List(int ClientID, const char* filter)
+{
+	int total = 0;
+	char buf[256];
+	int bufcnt = 0;
+	if (filter[0])
+		str_format(buf, sizeof(buf), "Listing players with \"%s\" in name:", filter);
+	else
+		str_format(buf, sizeof(buf), "Listing all players:", filter);
+	SendChatTarget(ClientID, buf);
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(m_apPlayers[i])
+		{
+			total++;
+			const char* name = Server()->ClientName(i);
+			if (str_find_nocase(name, filter) == NULL)
+				continue;
+			if (bufcnt + str_length(name) + 4 > 256)
+			{
+				SendChatTarget(ClientID, buf);
+				bufcnt = 0;
+			}
+			if (bufcnt != 0)
+			{
+				str_format(&buf[bufcnt], sizeof(buf) - bufcnt, ", %s", name);
+				bufcnt += 2 + str_length(name);
+			}
+			else
+			{
+				str_format(&buf[bufcnt], sizeof(buf) - bufcnt, "%s", name);
+				bufcnt += str_length(name);
+			}
+		}
+	}
+	if (bufcnt != 0)
+		SendChatTarget(ClientID, buf);
+	str_format(buf, sizeof(buf), "%d players online", total);
+	SendChatTarget(ClientID, buf);
+}
+

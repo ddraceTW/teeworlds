@@ -53,7 +53,7 @@ public:
 	void InitServerBan(class IConsole *pConsole, class IStorage *pStorage, class CServer* pServer);
 
 	virtual int BanAddr(const NETADDR *pAddr, int Seconds, const char *pReason);
-	virtual int BanRange(const CNetRange *pRange, int Seconds, const char *pReason);
+	//virtual int BanRange(const CNetRange *pRange, int Seconds, const char *pReason);
 
 	static void ConBanExt(class IConsole::IResult *pResult, void *pUser);
 };

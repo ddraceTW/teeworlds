@@ -126,7 +126,59 @@ private:
 	bool m_Dummy;
 
 	// used for spectator mode
-	int m_SpectatorID;
+public: int m_SpectatorID; private: // XXX: this is not good
+
+// DDRace
+
+public:
+	enum
+	{
+		PAUSED_NONE=0,
+		PAUSED_SPEC,
+		PAUSED_PAUSED,
+		PAUSED_FORCE
+	};
+
+	int m_Paused;
+	bool m_DND;
+	int64 m_NextPauseTick;
+	char m_TimeoutCode[64];
+
+	void ProcessPause();
+	int m_ForcePauseTime;
+	bool IsPlaying();
+	int64 m_Last_KickVote;
+	int64 m_Last_Team;
+	int m_Authed;
+	int m_ClientVersion;
+	bool m_ShowOthers;
+	bool m_ShowAll;
+	bool m_SpecTeam;
+	bool m_NinjaJetpack;
+	bool m_Afk;
+	int m_KillMe;
+
+	int m_ChatScore;
+
+	bool AfkTimer(int new_target_x, int new_target_y); //returns true if kicked
+	void AfkVoteTimer(CNetObj_PlayerInput *NewTarget);
+	int64 m_LastPlaytime;
+	int64 m_LastEyeEmote;
+	int m_LastTarget_x;
+	int m_LastTarget_y;
+	CNetObj_PlayerInput m_LastTarget;
+	int m_Sent1stAfkWarning; // afk timer's 1st warning after 50% of sv_max_afk_time
+	int m_Sent2ndAfkWarning; // afk timer's 2nd warning after 90% of sv_max_afk_time
+	char m_pAfkMsg[160];
+	bool m_EyeEmote;
+	int m_TimerType;
+	int m_DefEmote;
+	int m_DefEmoteReset;
+	bool m_Halloween;
+	bool m_FirstPacket;
+#if defined(CONF_SQL)
+	int64 m_LastSQLQuery;
+#endif
 };
 
 #endif

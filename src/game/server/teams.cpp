@@ -1,7 +1,7 @@
 /* (c) Shereef Marzouk. See "licence DDRace.txt" and the readme.txt in the root of the distribution for more information. */
 #include "teams.h"
 #include "player.h"
-#include <entities/character.h>
+#include "entities/character.h"
 #include <engine/shared/config.h>
 #include <engine/server/server.h>
 

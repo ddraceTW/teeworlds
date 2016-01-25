@@ -1,6 +1,7 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 
+#include <engine/shared/config.h>
 #include "entities/character.h"
 #include "gamecontext.h"
 #include "gamecontroller.h"
@@ -370,3 +371,151 @@ void CPlayer::TryRespawn()
 	m_pCharacter->Spawn(this, SpawnPos);
 	GameServer()->CreatePlayerSpawn(SpawnPos);
 }
+
+bool CPlayer::AfkTimer(int NewTargetX, int NewTargetY)
+{
+	/*
+		afk timer (x, y = mouse coordinates)
+		Since a player has to move the mouse to play, this is a better method than checking
+		the player's position in the game world, because it can easily be bypassed by just locking a key.
+		Frozen players could be kicked as well, because they can't move.
+		It also works for spectators.
+		returns true if kicked
+	*/
+
+	if(m_Authed)
+		return false; // don't kick admins
+	if(g_Config.m_SvMaxAfkTime == 0)
+		return false; // 0 = disabled
+
+	if(NewTargetX != m_LastTarget_x || NewTargetY != m_LastTarget_y)
+	{
+		m_LastPlaytime = time_get();
+		m_LastTarget_x = NewTargetX;
+		m_LastTarget_y = NewTargetY;
+		m_Sent1stAfkWarning = 0; // afk timer's 1st warning after 50% of sv_max_afk_time
+		m_Sent2ndAfkWarning = 0;
+
+	}
+	else
+	{
+		if(!m_Paused)
+		{
+			// not playing, check how long
+			if(m_Sent1stAfkWarning == 0 && m_LastPlaytime < time_get()-time_freq()*(int)(g_Config.m_SvMaxAfkTime*0.5))
+			{
+				sprintf(
+					m_pAfkMsg,
+					"You have been afk for %d seconds now. Please note that you get kicked after not playing for %d seconds.",
+					(int)(g_Config.m_SvMaxAfkTime*0.5),
+					g_Config.m_SvMaxAfkTime
+				);
+				m_pGameServer->SendChatTarget(m_ClientID, m_pAfkMsg);
+				m_Sent1stAfkWarning = 1;
+			}
+			else if(m_Sent2ndAfkWarning == 0 && m_LastPlaytime < time_get()-time_freq()*(int)(g_Config.m_SvMaxAfkTime*0.9))
+			{
+				sprintf(
+					m_pAfkMsg,
+					"You have been afk for %d seconds now. Please note that you get kicked after not playing for %d seconds.",
+					(int)(g_Config.m_SvMaxAfkTime*0.9),
+					g_Config.m_SvMaxAfkTime
+				);
+				m_pGameServer->SendChatTarget(m_ClientID, m_pAfkMsg);
+				m_Sent2ndAfkWarning = 1;
+			}
+			else if(m_LastPlaytime < time_get()-time_freq()*g_Config.m_SvMaxAfkTime)
+			{
+				//CServer* serv =	(CServer*)m_pGameServer->Server(); // ...wtf?
+				Server()->Kick(m_ClientID,"Away from keyboard");
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+void CPlayer::AfkVoteTimer(CNetObj_PlayerInput *NewTarget)
+{
+	if(g_Config.m_SvMaxAfkVoteTime == 0)
+		return;
+
+	if(mem_comp(NewTarget, &m_LastTarget, sizeof(CNetObj_PlayerInput)) != 0)
+	{
+		m_LastPlaytime = time_get();
+		mem_copy(&m_LastTarget, NewTarget, sizeof(CNetObj_PlayerInput));
+	}
+	else if(m_LastPlaytime < time_get()-time_freq()*g_Config.m_SvMaxAfkVoteTime)
+	{
+		m_Afk = true;
+		return;
+	}
+
+	m_Afk = false;
+}
+
+void CPlayer::ProcessPause()
+{
+	if(!m_pCharacter)
+		return;
+
+	char aBuf[128];
+	if(m_Paused >= PAUSED_PAUSED)
+	{
+		if(!m_pCharacter->IsPaused())
+		{
+			m_pCharacter->Pause(true);
+			if(g_Config.m_SvPauseMessages)
+			{
+				str_format(aBuf, sizeof(aBuf), (m_Paused == PAUSED_PAUSED) ? "'%s' paused" : "'%s' was force-paused for %ds", Server()->ClientName(m_ClientID), m_ForcePauseTime/Server()->TickSpeed());
+				GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+			}
+			GameServer()->CreateDeath(m_pCharacter->m_Pos, m_ClientID, m_pCharacter->Teams()->TeamMask(m_pCharacter->Team(), -1, m_ClientID));
+			GameServer()->CreateSound(m_pCharacter->m_Pos, SOUND_PLAYER_DIE, m_pCharacter->Teams()->TeamMask(m_pCharacter->Team(), -1, m_ClientID));
+			m_NextPauseTick = Server()->Tick() + g_Config.m_SvPauseFrequency * Server()->TickSpeed();
+		}
+	}
+	else
+	{
+		if(m_pCharacter->IsPaused())
+		{
+			m_pCharacter->Pause(false);
+			if(g_Config.m_SvPauseMessages)
+			{
+				str_format(aBuf, sizeof(aBuf), "'%s' resumed", Server()->ClientName(m_ClientID));
+				GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+			}
+			GameServer()->CreatePlayerSpawn(m_pCharacter->m_Pos, m_pCharacter->Teams()->TeamMask(m_pCharacter->Team(), -1, m_ClientID));
+			m_NextPauseTick = Server()->Tick() + g_Config.m_SvPauseFrequency * Server()->TickSpeed();
+		}
+	}
+}
+
+bool CPlayer::IsPlaying()
+{
+	if(m_pCharacter && m_pCharacter->IsAlive())
+		return true;
+	return false;
+}
+
+/*void CPlayer::FindDuplicateSkins()
+{
+	if (m_TeeInfos.m_UseCustomColor == 0 && !m_StolenSkin) return;
+	m_StolenSkin = 0;
+	for (int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if (i == m_ClientID) continue;
+		if(GameServer()->m_apPlayers[i])
+		{
+			if (GameServer()->m_apPlayers[i]->m_StolenSkin) continue;
+			if ((GameServer()->m_apPlayers[i]->m_TeeInfos.m_UseCustomColor == m_TeeInfos.m_UseCustomColor) &&
+			(GameServer()->m_apPlayers[i]->m_TeeInfos.m_ColorFeet == m_TeeInfos.m_ColorFeet) &&
+			(GameServer()->m_apPlayers[i]->m_TeeInfos.m_ColorBody == m_TeeInfos.m_ColorBody) &&
+			!str_comp(GameServer()->m_apPlayers[i]->m_TeeInfos.m_SkinName, m_TeeInfos.m_SkinName))
+			{
+				m_StolenSkin = 1;
+				return;
+			}
+		}
+	}
+}*/
