@@ -37,6 +37,7 @@ class CGameContext : public IGameServer
 {
 	IServer *m_pServer;
 	class IConsole *m_pConsole;
+	class IConsole *m_pChatConsole;
 	CLayers m_Layers;
 	CCollision m_Collision;
 	CNetObjHandler m_NetObjHandler;
@@ -63,6 +64,13 @@ class CGameContext : public IGameServer
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainSettingUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
+	void InitChatConsole();
+ 
+ 	static void SendChatResponse(const char *pLine, void *pUser, bool Highlighted = false);
+ 	static void ChatConInfo(IConsole::IResult *pResult, void *pUser);
+ 
+ 	int m_ChatConsoleClientID;
+
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
 
@@ -70,6 +78,7 @@ class CGameContext : public IGameServer
 public:
 	IServer *Server() const { return m_pServer; }
 	class IConsole *Console() { return m_pConsole; }
+	class IConsole *ChatConsole() { return m_pChatConsole; }
 	CCollision *Collision() { return &m_Collision; }
 	CTuningParams *Tuning() { return &m_Tuning; }
 
