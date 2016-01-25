@@ -65,7 +65,8 @@ class CGameContext : public IGameServer
 	static void ConchainSettingUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 	void InitChatConsole();
- 
+ 	
+ 	// chatconsole stuff
  	static void SendChatResponse(const char *pLine, void *pUser, bool Highlighted = false);
  	static void ChatConInfo(IConsole::IResult *pResult, void *pUser);
  
