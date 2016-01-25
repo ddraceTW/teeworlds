@@ -1,5 +1,7 @@
 /* (c) Shereef Marzouk. See "licence DDRace.txt" and the readme.txt in the root of the distribution for more information. */
 #include "teams.h"
+#include "player.h"
+#include <entities/character.h>
 #include <engine/shared/config.h>
 #include <engine/server/server.h>
 
@@ -471,7 +473,7 @@ void CGameTeams::OnFinish(CPlayer* Player)
 	if (time - pData->m_BestTime < 0)
 	{
 		// new record \o/
-		Server()->SaveDemo(Player->GetCID(), time);
+		//Server()->SaveDemo(Player->GetCID(), time);
 
 		if (diff >= 60)
 			str_format(aBuf, sizeof(aBuf), "New record: %d minute(s) %5.2f second(s) better.",
@@ -486,7 +488,7 @@ void CGameTeams::OnFinish(CPlayer* Player)
 	}
 	else if (pData->m_BestTime != 0) // tee has already finished?
 	{
-		Server()->StopRecord(Player->GetCID());
+		//Server()->StopRecord(Player->GetCID());
 
 		if (diff <= 0.005)
 		{
@@ -507,7 +509,7 @@ void CGameTeams::OnFinish(CPlayer* Player)
 	}
 	else
 	{
-		Server()->SaveDemo(Player->GetCID(), time);
+		//Server()->SaveDemo(Player->GetCID(), time);
 	}
 
 	bool CallSaveScore = false;

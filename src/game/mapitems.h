@@ -287,6 +287,14 @@ struct CMapItemLayerTilemap
 	int m_Data;
 
 	int m_aName[3];
+
+	// DDRace
+
+	int m_Tele;
+	int m_Speedup;
+	int m_Front;
+	int m_Switch;
+	int m_Tune;
 } ;
 
 struct CMapItemLayerQuads
@@ -350,6 +358,48 @@ struct CMapItemEnvelope : public CMapItemEnvelope_v2
 {
 	// bezier curve support
 	enum { CURRENT_VERSION=3 };
+};
+
+// DDRace
+
+class CTeleTile
+{
+public:
+	unsigned char m_Number;
+	unsigned char m_Type;
+};
+
+class CSpeedupTile
+{
+public:
+	unsigned char m_Force;
+	unsigned char m_MaxSpeed;
+	unsigned char m_Type;
+	short m_Angle;
+};
+
+class CSwitchTile
+{
+public:
+	unsigned char m_Number;
+	unsigned char m_Type;
+	unsigned char m_Flags;
+	unsigned char m_Delay;
+};
+
+class CDoorTile
+{
+public:
+	unsigned char m_Index;
+	unsigned char m_Flags;
+	int m_Number;
+};
+
+class CTuneTile
+{
+public:
+	unsigned char m_Number;
+	unsigned char m_Type;
 };
 
 #endif

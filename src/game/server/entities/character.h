@@ -127,4 +127,12 @@ private:
 
 };
 
+enum
+{
+	DDRACE_NONE = 0,
+	DDRACE_STARTED,
+	DDRACE_CHEAT, // no time and won't start again unless ordered by a mod or death
+	DDRACE_FINISHED
+};
+
 #endif

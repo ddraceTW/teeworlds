@@ -1,9 +1,11 @@
 /* (c) Shereef Marzouk. See "licence DDRace.txt" and the readme.txt in the root of the distribution for more information. */
 #include <generated/protocol.h>
 #include <game/server/gamecontext.h>
+#include <game/server/player.h>
 #include <engine/shared/config.h>
 #include <game/server/gamemodes/DDRace.h>
 
+#include "character.h"
 #include "door.h"
 
 CDoor::CDoor(CGameWorld *pGameWorld, vec2 Pos, float Rotation, int Length,
